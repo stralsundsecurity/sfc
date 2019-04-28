@@ -3,8 +3,7 @@ import sys
 
 import clipboard as clipboard
 from PyQt5 import QtGui, QtWidgets
-from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QAction, QTableWidget, QTableWidgetItem, QApplication, \
-    QColorDialog, QMenu, QFileDialog
+from PyQt5.QtWidgets import *
 
 
 class App(QMainWindow):
@@ -19,7 +18,16 @@ class App(QMainWindow):
         self.hotkey = {}
 
         self.tableWidget = QTableWidget()
-        self.layout = QVBoxLayout()  # Add box layout
+        self.tableWidgetPlainText = QTableWidget()
+
+        self.okButton = QPushButton("OK")
+        self.cancelButton = QPushButton("Cancel")
+
+        self.comboBoxGadget = QComboBox()
+        self.comboBoxCipher = QComboBox()
+        self.comboBoxBlockSize = QComboBox()
+        self.comboBoxEncoding = QComboBox()
+
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)  # set QMainWindow.centralWidget
 
@@ -29,25 +37,73 @@ class App(QMainWindow):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
 
-        self.tableWidget.horizontalHeader().setStretchLastSection(True)
-        self.tableWidget.doubleClicked.connect(self.onTableClick)
-
         self.createMenu()
 
         self.shortcut('Copy', 'Ctrl+C', self.copyData)
         self.shortcut('Copy', 'Ctrl+X', self.extractData)
         self.shortcut('Copy', 'Ctrl+V', self.insertData)
 
-        # Add table to box layout
-        self.layout.addWidget(self.tableWidget)
+        self.tableWidget.horizontalHeader().setStretchLastSection(True)
+        self.tableWidget.doubleClicked.connect(self.onTableClick)
+
+        self.vboxTableWidgets = QVBoxLayout()
+        self.vboxTableWidgets.addWidget(self.tableWidget)
+        self.vboxTableWidgets.addWidget(self.tableWidgetPlainText)
+
+        self.comboBoxGadget.addItem("CBC")
+        self.comboBoxGadget.addItem("CFB")
+        self.comboBoxGadget.activated.connect(self.onSelectGadget)
+
+        self.comboBoxCipher.addItem("AES")
+        self.comboBoxCipher.addItem("DES")
+        self.comboBoxCipher.activated.connect(self.onSelectChiffre)
+
+        self.comboBoxBlockSize.addItem("64 Bit")
+        self.comboBoxBlockSize.addItem("128 Bit")
+        self.comboBoxBlockSize.addItem("256 Bit")
+        self.comboBoxBlockSize.addItem("512 Bit")
+        self.comboBoxGadget.activated.connect(self.onSelectBlockSize)
+
+        self.comboBoxEncoding.addItem("BASE 64")
+        self.comboBoxEncoding.addItem("BASE 32")
+        self.comboBoxEncoding.addItem("Hex")
+        self.comboBoxEncoding.addItem("UTF-8")
+        self.comboBoxGadget.activated.connect(self.onSelectEncoding)
+
+        self.vboxComboBox = QVBoxLayout()
+        self.vboxComboBox.addWidget(self.comboBoxGadget)
+        self.vboxComboBox.addWidget(self.comboBoxCipher)
+        self.vboxComboBox.addWidget(self.comboBoxBlockSize)
+        self.vboxComboBox.addWidget(self.comboBoxEncoding)
+        self.vboxComboBox.addStretch(1)
+
+        self.hbox = QHBoxLayout()
+        self.hbox.addLayout(self.vboxComboBox)
+        self.hbox.addLayout(self.vboxTableWidgets)
 
         # Add box layout to central widget
-        self.central_widget.setLayout(self.layout)
+        self.central_widget.setLayout(self.hbox)
 
         self.statusBar().showMessage('')
 
         # Show widget
         self.show()
+
+    def onSelectGadget(self):
+        # Todo
+        return None
+
+    def onSelectChiffre(self):
+        # Todo
+        return None
+
+    def onSelectBlockSize(self):
+        # Todo
+        return None
+
+    def onSelectEncoding(self):
+        # Todo
+        return None
 
     def createMenu(self):
         """
