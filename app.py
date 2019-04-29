@@ -117,7 +117,8 @@ class CustomTableWidget(QTableWidget):
                        self.selectedRanges().pop(0).bottomRow() + 1):
             for j in range(self.selectedRanges().pop(0).leftColumn(),
                            self.selectedRanges().pop(0).rightColumn() + 1):
-                copiedData += self.item(i, j).text() + "\t"
+                if self.item(i, j) is not None:
+                    copiedData += self.item(i, j).text() + "\t"
             copiedData += '\n'
         clipboard.copy(copiedData)
 
@@ -126,15 +127,16 @@ class CustomTableWidget(QTableWidget):
         Extracts the data from the selected cells to the system clipboard and fills the cells with empty strings
         :return: None
         """
-        copiedData = ""
+        extractedData = ""
         for i in range(self.selectedRanges().pop(0).topRow(),
                        self.selectedRanges().pop(0).bottomRow() + 1):
             for j in range(self.selectedRanges().pop(0).leftColumn(),
                            self.selectedRanges().pop(0).rightColumn() + 1):
-                copiedData += self.item(i, j).text() + "\t"
-                self.setItem(i, j, QTableWidgetItem(""))
-            copiedData += '\n'
-        clipboard.copy(copiedData)
+                if self.item(i, j) is not None:
+                    extractedData += self.item(i, j).text() + "\t"
+                    self.setItem(i, j, QTableWidgetItem(""))
+            extractedData += '\n'
+        clipboard.copy(extractedData)
 
     def insertData(self):
         """
@@ -150,7 +152,7 @@ class CustomTableWidget(QTableWidget):
             for j in range(self.selectedRanges().pop(0).leftColumn(),
                            self.selectedRanges().pop(0).rightColumn() + len(tokens)):
                 self.setItem(i, j, QTableWidgetItem(
-                    tokens[j - self.selectedRanges().pop(0).leftColumn()]))
+                    tokens[j - self.selectedRanges().pop(0).leftColumn() -1]))
 
 
 class App(QMainWindow):
@@ -188,13 +190,14 @@ class App(QMainWindow):
 
         self.createMenu()
 
-        self.shortcut('Copy_Cipher', 'Ctrl+C', self.tableWidgetCipher.copyData)
-        self.shortcut('Extract_Cipher', 'Ctrl+X', self.tableWidgetCipher.extractData)
-        self.shortcut('Paste_Cipher', 'Ctrl+V', self.tableWidgetCipher.insertData)
+        # TODO bind keycombo to tablewidgets and not to mainwindow
+        # self.shortcut('Copy_Cipher', 'Ctrl+C', self.tableWidgetCipher.copyData, self.tableWidgetCipher)
+        # self.shortcut('Extract_Cipher', 'Ctrl+X', self.tableWidgetCipher.extractData, self.tableWidgetCipher)
+        # self.shortcut('Paste_Cipher', 'Ctrl+V', self.tableWidgetCipher.insertData, self.tableWidgetCipher)
 
-        self.shortcut('Copy_Plain', 'Ctrl+C', self.tableWidgetPlain.copyData)
-        self.shortcut('Extract_Plain', 'Ctrl+X', self.tableWidgetPlain.extractData)
-        self.shortcut('Paste_Plain', 'Ctrl+V', self.tableWidgetPlain.insertData)
+        self.shortcut('Copy_Plain', 'Ctrl+C', self.tableWidgetPlain.copyData, self.tableWidgetPlain)
+        self.shortcut('Extract_Plain', 'Ctrl+X', self.tableWidgetPlain.extractData, self.tableWidgetPlain)
+        self.shortcut('Paste_Plain', 'Ctrl+V', self.tableWidgetPlain.insertData, self.tableWidgetPlain)
 
         self.tableWidgetCipher.horizontalHeader().setStretchLastSection(True)
         self.tableWidgetPlain.horizontalHeader().setStretchLastSection(True)
@@ -333,7 +336,7 @@ class App(QMainWindow):
         if filename is not None:
             self.writeCsv(filename)
 
-    def shortcut(self, key_name, key_combo, func):
+    def shortcut(self, key_name, key_combo, func, widget):
         """
         Adds a shortcut for a key combination and the function
         :param key_name: Name of the shortcut
