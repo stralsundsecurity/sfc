@@ -1,6 +1,7 @@
 import binascii
 import csv
 import sys
+import os
 
 import clipboard as clipboard
 from PyQt5 import QtGui, QtWidgets
@@ -8,19 +9,8 @@ from PyQt5.QtWidgets import *
 
 
 class CustomTableWidget(QTableWidget):
-
     def __init__(self, parent=None):
         super(CustomTableWidget, self).__init__(parent)
-
-    def onTableClick(self):
-        """
-        Prints cell content on the console
-
-        :return:
-        """
-        print("\n")
-        for currentQTableWidgetItem in self.selectedItems():
-            print(currentQTableWidgetItem.row(), currentQTableWidgetItem.column(), currentQTableWidgetItem.text())
 
     def contextMenuEvent(self, event):
         """
@@ -121,6 +111,7 @@ class CustomTableWidget(QTableWidget):
                     copiedData += self.item(i, j).text() + "\t"
             copiedData += '\n'
         clipboard.copy(copiedData)
+        self.resizeColumnsToContents()
 
     def extractData(self):
         """
@@ -137,6 +128,7 @@ class CustomTableWidget(QTableWidget):
                     self.setItem(i, j, QTableWidgetItem(""))
             extractedData += '\n'
         clipboard.copy(extractedData)
+        self.resizeColumnsToContents()
 
     def insertData(self):
         """
@@ -152,24 +144,31 @@ class CustomTableWidget(QTableWidget):
             for j in range(self.selectedRanges().pop(0).leftColumn(),
                            self.selectedRanges().pop(0).rightColumn() + len(tokens)):
                 self.setItem(i, j, QTableWidgetItem(
-                    tokens[j - self.selectedRanges().pop(0).leftColumn() -1]))
+                    tokens[j - self.selectedRanges().pop(0).leftColumn() - 1]))
+        self.resizeColumnsToContents()
 
 
 class App(QMainWindow):
 
     def __init__(self, parent=None, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
+        self.hotkey = {}
+        self.vboxTableWidgets = QVBoxLayout()
+        self.hbox = QHBoxLayout()
+        self.vboxComboBox = QVBoxLayout()
         self.title = 'Systemsicherheit'
         self.left = 0
         self.top = 0
         self.width = 500
         self.height = 500
-        self.hotkey = {}
 
-        # self.customTableWidgetCipher = CustomTableWidget(parent=self)
-        # self.customTableWidgetPlain = CustomTableWidget(parent=self)
         self.tableWidgetCipher = CustomTableWidget(parent=self)
         self.tableWidgetPlain = CustomTableWidget(parent=self)
+
+        self.gadget = 'CBC'
+        self.cipher = 'AES'
+        self.blockSize = 64
+        self.encoding = 'utf-8'
 
         self.okButton = QPushButton("OK")
         self.cancelButton = QPushButton("Cancel")
@@ -178,6 +177,11 @@ class App(QMainWindow):
         self.comboBoxCipher = QComboBox()
         self.comboBoxBlockSize = QComboBox()
         self.comboBoxEncoding = QComboBox()
+
+        self.labelGadget = QLabel(self)
+        self.labelCipher = QLabel(self)
+        self.labelBlockSize = QLabel(self)
+        self.labelEncoding = QLabel(self)
 
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)  # set QMainWindow.centralWidget
@@ -190,19 +194,9 @@ class App(QMainWindow):
 
         self.createMenu()
 
-        # TODO bind keycombo to tablewidgets and not to mainwindow
-        # self.shortcut('Copy_Cipher', 'Ctrl+C', self.tableWidgetCipher.copyData, self.tableWidgetCipher)
-        # self.shortcut('Extract_Cipher', 'Ctrl+X', self.tableWidgetCipher.extractData, self.tableWidgetCipher)
-        # self.shortcut('Paste_Cipher', 'Ctrl+V', self.tableWidgetCipher.insertData, self.tableWidgetCipher)
-
-        self.shortcut('Copy_Plain', 'Ctrl+C', self.tableWidgetPlain.copyData, self.tableWidgetPlain)
-        self.shortcut('Extract_Plain', 'Ctrl+X', self.tableWidgetPlain.extractData, self.tableWidgetPlain)
-        self.shortcut('Paste_Plain', 'Ctrl+V', self.tableWidgetPlain.insertData, self.tableWidgetPlain)
-
         self.tableWidgetCipher.horizontalHeader().setStretchLastSection(True)
         self.tableWidgetPlain.horizontalHeader().setStretchLastSection(True)
 
-        self.vboxTableWidgets = QVBoxLayout()
         self.vboxTableWidgets.addWidget(self.tableWidgetCipher)
         self.vboxTableWidgets.addWidget(self.tableWidgetPlain)
 
@@ -212,28 +206,35 @@ class App(QMainWindow):
 
         self.comboBoxCipher.addItem("AES")
         self.comboBoxCipher.addItem("DES")
-        self.comboBoxCipher.activated.connect(self.onSelectChiffre)
+        self.comboBoxCipher.activated.connect(self.onSelectCipher)
 
-        self.comboBoxBlockSize.addItem("64 Bit")
-        self.comboBoxBlockSize.addItem("128 Bit")
-        self.comboBoxBlockSize.addItem("256 Bit")
-        self.comboBoxBlockSize.addItem("512 Bit")
-        self.comboBoxGadget.activated.connect(self.onSelectBlockSize)
+        self.comboBoxBlockSize.addItem("64")
+        self.comboBoxBlockSize.addItem("128")
+        self.comboBoxBlockSize.addItem("256")
+        self.comboBoxBlockSize.addItem("512")
+        self.comboBoxBlockSize.activated.connect(self.onSelectBlockSize)
 
         self.comboBoxEncoding.addItem("BASE 64")
         self.comboBoxEncoding.addItem("BASE 32")
         self.comboBoxEncoding.addItem("Hex")
         self.comboBoxEncoding.addItem("UTF-8")
-        self.comboBoxGadget.activated.connect(self.onSelectEncoding)
+        self.comboBoxEncoding.activated.connect(self.onSelectEncoding)
 
-        self.vboxComboBox = QVBoxLayout()
+        self.labelGadget.setText("Select Gadget:")
+        self.labelCipher.setText("Select Cipher:")
+        self.labelBlockSize.setText("Select Blocksize:")
+        self.labelEncoding.setText("Select Encoding:")
+
+        self.vboxComboBox.addWidget(self.labelGadget)
         self.vboxComboBox.addWidget(self.comboBoxGadget)
+        self.vboxComboBox.addWidget(self.labelCipher)
         self.vboxComboBox.addWidget(self.comboBoxCipher)
+        self.vboxComboBox.addWidget(self.labelBlockSize)
         self.vboxComboBox.addWidget(self.comboBoxBlockSize)
+        self.vboxComboBox.addWidget(self.labelEncoding)
         self.vboxComboBox.addWidget(self.comboBoxEncoding)
         self.vboxComboBox.addStretch(1)
 
-        self.hbox = QHBoxLayout()
         self.hbox.addLayout(self.vboxComboBox)
         self.hbox.addLayout(self.vboxTableWidgets)
 
@@ -242,23 +243,57 @@ class App(QMainWindow):
 
         self.statusBar().showMessage('')
 
+        self.shortcut('Copy', 'Ctrl+C', self.copyData)
+        self.shortcut('Extract', 'Ctrl+X', self.extractData)
+        self.shortcut('Paste', 'Ctrl+V', self.insertData)
+
         # Show widget
         self.show()
 
+    def shortcut(self, key_name, key_combo, func):
+        """
+        Adds a shortcut for a key combination and the function
+        :param key_name: Name of the shortcut
+        :param key_combo: Key combination
+        :param func: function name you want to call with the shortcut
+        :return:
+        """
+        self.hotkey[key_name] = QtWidgets.QShortcut(QtGui.QKeySequence(key_combo), self)
+        self.hotkey[key_name].activated.connect(func)
+        self.hotkey[key_name].setContext(1)
+
+    def copyData(self):
+        if self.tableWidgetCipher.hasFocus():
+            self.tableWidgetCipher.copyData()
+        elif self.tableWidgetPlain.hasFocus():
+            self.tableWidgetPlain.copyData()
+
+    def extractData(self):
+        if self.tableWidgetCipher.hasFocus():
+            self.tableWidgetCipher.extractData()
+        elif self.tableWidgetPlain.hasFocus():
+            self.tableWidgetPlain.extractData()
+
+    def insertData(self):
+        if self.tableWidgetCipher.hasFocus():
+            self.tableWidgetCipher.insertData()
+        elif self.tableWidgetPlain.hasFocus():
+            self.tableWidgetPlain.insertData()
+
     def onSelectGadget(self):
-        # Todo
+        self.gadget = int(self.comboBoxGadget.currentText())
         return None
 
-    def onSelectChiffre(self):
-        # Todo
+    def onSelectCipher(self):
+        self.cipher = int(self.comboBoxCipher.currentText())
         return None
 
     def onSelectBlockSize(self):
-        # Todo
+        self.blockSize = int(self.comboBoxBlockSize.currentText())
         return None
 
     def onSelectEncoding(self):
-        # Todo
+        self.encoding = int(self.comboBoxEncoding.currentText())
         return None
 
     def createMenu(self):
@@ -329,58 +364,67 @@ class App(QMainWindow):
 
     def on_menuItemLoad_clicked(self):
         filename = self.openFile()
-        self.loadCSV(filename)
+        self.loadFile(filename)
 
     def on_menuItemSave_clicked(self):
         filename = self.saveFile()
         if filename is not None:
-            self.writeCsv(filename)
+            self.writeFile(filename)
 
-    def shortcut(self, key_name, key_combo, func, widget):
-        """
-        Adds a shortcut for a key combination and the function
-        :param key_name: Name of the shortcut
-        :param key_combo: Key combination
-        :param widget: specific widget
-        :param func: function name you want to call with the shortcut
-        :return: 
-        """
-        self.hotkey[key_name] = QtWidgets.QShortcut(QtGui.QKeySequence(key_combo), self)
-        self.hotkey[key_name].activated.connect(func)
+    # def loadCSV(self, filename):
+    #     """
+    #     Loads data from a csv file to the table widget
+    #     :param filename: name of the file
+    #     :return: None
+    #     """
+    #
+    #     if filename != "":
+    #         infile = open(filename, "r")
+    #         lines = infile.readlines()
+    #         infile.close()
+    #         self.tableWidgetCipher.setRowCount(len(lines))
+    #         self.tableWidgetCipher.setColumnCount(len(lines[0].strip().split(",")))
+    #         for i in range(0, len(lines)):
+    #             tokens = lines[i].strip().split(",")
+    #             for j in range(0, len(tokens)):
+    #                 self.tableWidgetCipher.setItem(i, j, QTableWidgetItem(tokens[j]))
+    #         self.tableWidgetCipher.resizeColumnsToContents()
 
-    def loadCSV(self, filename):
-        """
-        Loads data from a csv file to the table widget
-        :param filename: name of the file
-        :return: None
-        """
+    def loadFile(self, filename):
+        with open(filename, 'rb') as f:
+            fileSize = os.stat(filename).st_size
+            self.tableWidgetCipher.setColumnCount((fileSize / self.blockSize) / 2)
+            self.tableWidgetCipher.setRowCount((fileSize / self.blockSize) / 2)
+            byte = f.read(self.blockSize)
+            while byte != b"":
+                for i in range(0, self.tableWidgetCipher.rowCount()):
+                    for j in range(0, self.tableWidgetCipher.columnCount()):
+                        self.tableWidgetCipher.setItem(i, j, QTableWidgetItem(str(byte)))
+                self.tableWidgetCipher.resizeColumnsToContents()
+                byte = f.read(self.blockSize)
 
-        if filename != "":
-            infile = open(filename, "r")
-            lines = infile.readlines()
-            infile.close()
-            self.tableWidgetCipher.setRowCount(len(lines))
-            self.tableWidgetCipher.setColumnCount(len(lines[0].strip().split(",")))
-            for i in range(0, len(lines)):
-                tokens = lines[i].strip().split(",")
-                for j in range(0, len(tokens)):
-                    self.tableWidgetCipher.setItem(i, j, QTableWidgetItem(tokens[j]))
-            self.tableWidgetCipher.resizeColumnsToContents()
-
-    def writeCsv(self, filename):
-        """
-        Writes the data from the table widget to a csv file
-        :param filename: name of the file
-        :return: None
-        """
+    def writeFile(self, filename):
         data = []
-        with open(filename, "w", newline='') as fileOutput:
-            writer = csv.writer(fileOutput)
+        with open(filename, "br+", newline='') as fileOutput:
             for rowNumber in range(self.tableWidgetCipher.rowCount()):
                 for columnNumber in range(self.tableWidgetCipher.columnCount()):
                     data.append(self.tableWidgetCipher.item(rowNumber, columnNumber).text())
-                writer.writerow(data)
-                data = []
+            fileOutput.write(bytes(data))
+
+     # def writeCsv(self, filename):
+     #    """
+     #    Writes the data from the table widget to a csv file
+     #    :param filename: name of the file
+     #    :return: None
+     #    """
+     #    data = []
+     #    with open(filename, "w", newline='') as fileOutput:
+     #        writer = csv.writer(fileOutput)
+     #        for rowNumber in range(self.tableWidgetCipher.rowCount()):
+     #            for columnNumber in range(self.tableWidgetCipher.columnCount()):
+     #                data.append(self.tableWidgetCipher.item(rowNumber, columnNumber).text())
+     #            writer.writerow(data)
+     #            data = []
 
     def openFile(self):
         """
