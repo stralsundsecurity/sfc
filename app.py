@@ -1,5 +1,6 @@
+import base64
 import binascii
-import csv
+import codecs
 import sys
 import os
 
@@ -11,6 +12,7 @@ from PyQt5.QtWidgets import *
 class CustomTableWidget(QTableWidget):
     def __init__(self, parent=None):
         super(CustomTableWidget, self).__init__(parent)
+        self.encoding = 'UTF-8'
 
     def contextMenuEvent(self, event):
         """
@@ -22,6 +24,8 @@ class CustomTableWidget(QTableWidget):
         colorAct = contextMenu.addAction("Color")
         asciiAct = contextMenu.addAction("Convert to ASCII")
         hexAct = contextMenu.addAction("Convert to HEX")
+        deleteRow = contextMenu.addAction("Delete row")
+        deleteColumn = contextMenu.addAction("Delete column")
         action = contextMenu.exec_(event.globalPos())
 
         if action == colorAct:
@@ -30,6 +34,10 @@ class CustomTableWidget(QTableWidget):
             self.convertToASCII()
         elif action == hexAct:
             self.convertToHex()
+        elif action == deleteRow:
+            self.removeRow(self.currentRow())
+        elif action == deleteColumn:
+            self.removeColumn(self.currentColumn())
 
     def addTableRow(self):
         """
@@ -46,46 +54,100 @@ class CustomTableWidget(QTableWidget):
         """
         self.insertColumn(self.currentColumn() + 1)
 
-    def removeTableRow(self):
-        """
-        Removes the selected row
-        :return: None
-        """
-        self.removeRow(self.currentRow())
-
-    def removeTableColumn(self):
-        """
-        Removes the selected column
-        :return: None
-        """
-        self.removeColumn(self.currentColumn())
-
-    def convertToASCII(self):
+    def convertToASCII(self, blockSize):
         """
         Converts the table data to ascii
         :return: None
         """
+        data = ""
+        if self.encoding != "UTF-8":
+            for rowNumber in range(self.rowCount()):
+                for columnNumber in range(self.columnCount()):
+                    if self.item(rowNumber, columnNumber) is not None:
+                        data += self.item(rowNumber, columnNumber).text()
+            if self.encoding == 'Hex':
+                binaryData = bytes.fromhex(data)
+            elif self.encoding == 'Base32':
+                binaryData = base64.b32decode(data)
+            elif self.encoding == 'Base64':
+                binaryData = base64.b64decode(data)
 
-        for rowNumber in range(self.rowCount()):
-            for columnNumber in range(self.columnCount()):
-                if self.item(rowNumber, columnNumber) is not None:
-                    self.setItem(rowNumber, columnNumber, QTableWidgetItem(
-                        binascii.unhexlify(self.item(rowNumber, columnNumber).text()).decode('utf8')))
+            encoded = binaryData.decode('utf8')
+            clipboard.copy(encoded)
+            self.clearTable()
+            self.insertData(blockSize)
 
-    def convertToHex(self):
+    def convertToHex(self, blockSize):
+
         """
         Converts the table data to hex
         :return: None
         """
+        data = ""
+        if self.encoding != "Hex":
+            for rowNumber in range(self.rowCount()):
+                for columnNumber in range(self.columnCount()):
+                    if self.item(rowNumber, columnNumber) is not None:
+                        if self.encoding == 'UTF-8':
+                            data += self.item(rowNumber, columnNumber).text()
+                        elif self.encoding == 'Base32':
+                            data += self.item(rowNumber, columnNumber).text()
+                        elif self.encoding == 'Base64':
+                            data += self.item(rowNumber, columnNumber).text()
+            binaryData = bytes(data, self.encoding)
+            encoded = binaryData.hex()
+            clipboard.copy(encoded)
+            self.clearTable()
+            self.insertData(blockSize)
 
-        for rowNumber in range(self.rowCount()):
-            for columnNumber in range(self.columnCount()):
-                if self.item(rowNumber, columnNumber) is not None:
-                    binaryData = bytes(self.item(rowNumber, columnNumber).text(), 'utf-8')
-                    hexData = binaryData.hex()
-                    self.setItem(rowNumber, columnNumber, QTableWidgetItem(hexData))
+    def convertToBase32(self, blockSize):
+
+        """
+        Converts the table data to Base32
+        :return: None
+        """
+        data = ""
+        if self.encoding != "Base32":
+            for rowNumber in range(self.rowCount()):
+                for columnNumber in range(self.columnCount()):
+                    if self.item(rowNumber, columnNumber) is not None:
+                        if self.encoding == 'UTF-8':
+                            data += self.item(rowNumber, columnNumber).text()
+                        elif self.encoding == 'Hex':
+                            data += self.item(rowNumber, columnNumber).text()
+                        elif self.encoding == 'Base64':
+                            data += self.item(rowNumber, columnNumber).text()
+            binaryData = bytes(data, self.encoding)
+            encoded = base64.b32decode(binaryData)
+            clipboard.copy(encoded)
+            self.clearTable()
+            self.insertData(blockSize)
+
+    def convertToBase64(self, blockSize):
+
+        """
+        Converts the table data to Base64
+        :return: None
+        """
+        data = ""
+        if self.encoding != "Base64":
+            for rowNumber in range(self.rowCount()):
+                for columnNumber in range(self.columnCount()):
+                    if self.item(rowNumber, columnNumber) is not None:
+                        if self.encoding == 'UTF-8':
+                            data += self.item(rowNumber, columnNumber).text()
+                        elif self.encoding == 'Hex':
+                            data += self.item(rowNumber, columnNumber).text()
+                        elif self.encoding == 'Base32':
+                            data += self.item(rowNumber, columnNumber).text()
+            binaryData = bytes(data, self.encoding)
+            encoded = base64.b64encode(binaryData).decode("utf-8")
+            clipboard.copy(encoded)
+            self.clearTable()
+            self.insertData(blockSize)
 
     def openColorDialog(self):
+
         """
         Opens a color dialog to select and set a background color for the selected cells.
         :return:
@@ -97,55 +159,90 @@ class CustomTableWidget(QTableWidget):
             for item in self.selectedItems():
                 item.setBackground(color)
 
-    def copyData(self):
+    def copyData(self, blockSize):
+
         """
         Copies the data from the selected cells to the system clipboard
         :return: None
         """
+
         copiedData = ""
         for i in range(self.selectedRanges().pop(0).topRow(),
                        self.selectedRanges().pop(0).bottomRow() + 1):
             for j in range(self.selectedRanges().pop(0).leftColumn(),
                            self.selectedRanges().pop(0).rightColumn() + 1):
                 if self.item(i, j) is not None:
-                    copiedData += self.item(i, j).text() + "\t"
-            copiedData += '\n'
+                    copiedData += self.item(i, j).text()
+                # else:
+                #     copiedData += "?" * int(blockSize/8)
         clipboard.copy(copiedData)
-        self.resizeColumnsToContents()
 
-    def extractData(self):
+    def extractData(self, blockSize):
+
         """
         Extracts the data from the selected cells to the system clipboard and fills the cells with empty strings
         :return: None
         """
+
         extractedData = ""
         for i in range(self.selectedRanges().pop(0).topRow(),
                        self.selectedRanges().pop(0).bottomRow() + 1):
             for j in range(self.selectedRanges().pop(0).leftColumn(),
                            self.selectedRanges().pop(0).rightColumn() + 1):
                 if self.item(i, j) is not None:
-                    extractedData += self.item(i, j).text() + "\t"
+                    extractedData += self.item(i, j).text()
                     self.setItem(i, j, QTableWidgetItem(""))
-            extractedData += '\n'
         clipboard.copy(extractedData)
-        self.resizeColumnsToContents()
 
-    def insertData(self):
+    def insertData(self, blockSize):
+
         """
         Inserts the data from the system clipboard to the selected cell.
-        TODO: Fix: When inserting into the last column, the following data is inserted into the initial columns
+        //TODO fix paste into a different cell from 1 1 (0 0)
         :return: None
         """
-        data = clipboard.paste().split("\n")
+        s = clipboard.paste()
+        data = []
+        while s:
+            data.append(s[:int((blockSize / 8))])
+            s = s[int((blockSize / 8)):]
+
+        self.setColumnCount(4)
+        self.setRowCount((len(data) / 4) + 1)
+
+        # for i in range(self.selectedRanges().pop(0).topRow(),
+        #                self.selectedRanges().pop(0).bottomRow() + len(data) - 1):
+        #     for j in range(self.selectedRanges().pop(0).leftColumn(),
+        #                    self.columnCount()):
+        #         if((j - self.selectedRanges().pop(0).leftColumn()) +
+        #           (i - self.selectedRanges().pop(0).topRow()) * self.columnCount()) < len(data):
+        #             index = j + i * self.columnCount()
+        #             self.setItem(i, j, QTableWidgetItem(
+        #                 data[index]))
+        #     self.setRangeSelected(QTableWidgetSelectionRange(self.selectedRanges().pop(0).topRow(),
+        #           self.selectedRanges().pop(0).bottomRow(), 0, self.selectedRanges().pop(0).rightColumn()), True)
 
         for i in range(self.selectedRanges().pop(0).topRow(),
                        self.selectedRanges().pop(0).bottomRow() + len(data) - 1):
-            tokens = data[i - self.selectedRanges().pop(0).topRow()].strip().split("\t")
             for j in range(self.selectedRanges().pop(0).leftColumn(),
-                           self.selectedRanges().pop(0).rightColumn() + len(tokens)):
-                self.setItem(i, j, QTableWidgetItem(
-                    tokens[j - self.selectedRanges().pop(0).leftColumn() - 1]))
-        self.resizeColumnsToContents()
+                           self.columnCount()):
+                if (j + i * self.columnCount()) < len(data):
+                    index = j + i * self.columnCount()
+                    self.setItem(i, j, QTableWidgetItem(
+                        data[index]))
+
+    def changeBlockSize(self, blockSize):
+        self.setRangeSelected(QTableWidgetSelectionRange(0, 0, self.rowCount() - 1, self.columnCount() - 1), True)
+        self.extractData(blockSize)
+        self.insertData(blockSize)
+
+    def clearTable(self):
+        self.setRangeSelected(QTableWidgetSelectionRange(0, 0, self.rowCount() - 1, self.columnCount() - 1), True)
+        for i in range(self.selectedRanges().pop(0).topRow(),
+                       self.selectedRanges().pop(0).bottomRow() + 1):
+            for j in range(self.selectedRanges().pop(0).leftColumn(),
+                           self.selectedRanges().pop(0).rightColumn() + 1):
+                    self.setItem(i, j, QTableWidgetItem(""))
 
 
 class App(QMainWindow):
@@ -159,16 +256,19 @@ class App(QMainWindow):
         self.title = 'Systemsicherheit'
         self.left = 0
         self.top = 0
-        self.width = 500
+        self.width = 550
         self.height = 500
 
         self.tableWidgetCipher = CustomTableWidget(parent=self)
+        self.tableWidgetCipher.setColumnCount(4)
+        self.tableWidgetCipher.setRowCount(5)
         self.tableWidgetPlain = CustomTableWidget(parent=self)
+        self.tableWidgetPlain.setColumnCount(4)
+        self.tableWidgetPlain.setRowCount(5)
 
         self.gadget = 'CBC'
         self.cipher = 'AES'
         self.blockSize = 64
-        self.encoding = 'utf-8'
 
         self.okButton = QPushButton("OK")
         self.cancelButton = QPushButton("Cancel")
@@ -200,30 +300,29 @@ class App(QMainWindow):
         self.vboxTableWidgets.addWidget(self.tableWidgetCipher)
         self.vboxTableWidgets.addWidget(self.tableWidgetPlain)
 
+        self.labelGadget.setText("Select Gadget:")
         self.comboBoxGadget.addItem("CBC")
         self.comboBoxGadget.addItem("CFB")
         self.comboBoxGadget.activated.connect(self.onSelectGadget)
 
+        self.labelCipher.setText("Select Cipher:")
         self.comboBoxCipher.addItem("AES")
         self.comboBoxCipher.addItem("DES")
         self.comboBoxCipher.activated.connect(self.onSelectCipher)
 
+        self.labelBlockSize.setText("Select Blocksize:")
         self.comboBoxBlockSize.addItem("64")
         self.comboBoxBlockSize.addItem("128")
         self.comboBoxBlockSize.addItem("256")
         self.comboBoxBlockSize.addItem("512")
         self.comboBoxBlockSize.activated.connect(self.onSelectBlockSize)
 
-        self.comboBoxEncoding.addItem("BASE 64")
-        self.comboBoxEncoding.addItem("BASE 32")
-        self.comboBoxEncoding.addItem("Hex")
-        self.comboBoxEncoding.addItem("UTF-8")
-        self.comboBoxEncoding.activated.connect(self.onSelectEncoding)
-
-        self.labelGadget.setText("Select Gadget:")
-        self.labelCipher.setText("Select Cipher:")
-        self.labelBlockSize.setText("Select Blocksize:")
         self.labelEncoding.setText("Select Encoding:")
+        self.comboBoxEncoding.addItem("UTF-8")
+        self.comboBoxEncoding.addItem("Hex")
+        self.comboBoxEncoding.addItem("Base32")
+        self.comboBoxEncoding.addItem("Base64")
+        self.comboBoxEncoding.activated.connect(self.onSelectEncoding)
 
         self.vboxComboBox.addWidget(self.labelGadget)
         self.vboxComboBox.addWidget(self.comboBoxGadget)
@@ -264,24 +363,24 @@ class App(QMainWindow):
 
     def copyData(self):
         if self.tableWidgetCipher.hasFocus():
-            self.tableWidgetCipher.copyData()
+            self.tableWidgetCipher.copyData(self.blockSize)
         elif self.tableWidgetPlain.hasFocus():
-            self.tableWidgetPlain.copyData()
+            self.tableWidgetPlain.copyData(self.blockSize)
 
     def extractData(self):
         if self.tableWidgetCipher.hasFocus():
-            self.tableWidgetCipher.extractData()
+            self.tableWidgetCipher.extractData(self.blockSize)
         elif self.tableWidgetPlain.hasFocus():
-            self.tableWidgetPlain.extractData()
+            self.tableWidgetPlain.extractData(self.blockSize)
 
     def insertData(self):
         if self.tableWidgetCipher.hasFocus():
-            self.tableWidgetCipher.insertData()
+            self.tableWidgetCipher.insertData(self.blockSize)
         elif self.tableWidgetPlain.hasFocus():
-            self.tableWidgetPlain.insertData()
+            self.tableWidgetPlain.insertData(self.blockSize)
 
     def onSelectGadget(self):
-        self.gadget = int(self.comboBoxGadget.currentText())
+        self.gadget = self.comboBoxGadget.currentText()
         return None
 
     def onSelectCipher(self):
@@ -290,13 +389,32 @@ class App(QMainWindow):
 
     def onSelectBlockSize(self):
         self.blockSize = int(self.comboBoxBlockSize.currentText())
+        self.tableWidgetCipher.changeBlockSize(self.blockSize)
+        self.tableWidgetPlain.changeBlockSize(self.blockSize)
         return None
 
     def onSelectEncoding(self):
-        self.encoding = int(self.comboBoxEncoding.currentText())
+        encoding = self.comboBoxEncoding.currentText()
+
+        if encoding == "UTF-8":
+            self.tableWidgetCipher.convertToASCII(self.blockSize)
+            self.tableWidgetCipher.convertToASCII(self.blockSize)
+        elif encoding == "Hex":
+            self.tableWidgetCipher.convertToHex(self.blockSize)
+            self.tableWidgetCipher.convertToHex(self.blockSize)
+        elif encoding == "Base32":
+            self.tableWidgetCipher.convertToBase32(self.blockSize)
+            self.tableWidgetCipher.convertToBase32(self.blockSize)
+        elif encoding == "Base64":
+            self.tableWidgetCipher.convertToBase64(self.blockSize)
+            self.tableWidgetCipher.convertToBase64(self.blockSize)
+
+        self.tableWidgetCipher.encoding = encoding
+        self.tableWidgetPlain.encoding = encoding
         return None
 
     def createMenu(self):
+
         """
         Creates a menu bar and the menu items.
         :return: None
@@ -334,18 +452,6 @@ class App(QMainWindow):
         menuItemAddColumn.triggered.connect(self.tableWidgetCipher.addTableColumn)
         menuItemAddColumn.triggered.connect(self.tableWidgetPlain.addTableColumn)
         editMenu.addAction(menuItemAddColumn)
-
-        menuItemRemoveRow = QAction('Remove row', self)
-        menuItemRemoveRow.setStatusTip('Removes the selected row.')
-        menuItemRemoveRow.triggered.connect(self.tableWidgetCipher.removeTableRow)
-        menuItemRemoveRow.triggered.connect(self.tableWidgetPlain.removeTableRow)
-        editMenu.addAction(menuItemRemoveRow)
-
-        menuItemRemoveColumn = QAction('Remove column', self)
-        menuItemRemoveColumn.setStatusTip('Removes the selected column.')
-        menuItemRemoveColumn.triggered.connect(self.tableWidgetCipher.removeTableColumn)
-        menuItemRemoveColumn.triggered.connect(self.tableWidgetPlain.removeTableColumn)
-        editMenu.addAction(menuItemRemoveColumn)
 
         menuItemConvertToASCII = QAction('Convert to ASCII', self)
         menuItemConvertToASCII.setStatusTip('Converts the table data to ASCII')
@@ -391,40 +497,44 @@ class App(QMainWindow):
     #         self.tableWidgetCipher.resizeColumnsToContents()
 
     def loadFile(self, filename):
-        with open(filename, 'rb') as f:
-            fileSize = os.stat(filename).st_size
-            self.tableWidgetCipher.setColumnCount((fileSize / self.blockSize) / 2)
-            self.tableWidgetCipher.setRowCount((fileSize / self.blockSize) / 2)
-            byte = f.read(self.blockSize)
-            while byte != b"":
-                for i in range(0, self.tableWidgetCipher.rowCount()):
-                    for j in range(0, self.tableWidgetCipher.columnCount()):
-                        self.tableWidgetCipher.setItem(i, j, QTableWidgetItem(str(byte)))
-                self.tableWidgetCipher.resizeColumnsToContents()
+        if (filename is not None) and (filename != ""):
+            with open(filename, 'rb') as f:
+                fileSize = os.stat(filename).st_size
+                self.tableWidgetCipher.setColumnCount((fileSize / (self.blockSize / 8) + 1) / 2)
+                self.tableWidgetCipher.setRowCount(fileSize / (self.blockSize / 8) / 2)
                 byte = f.read(self.blockSize)
+                row = 0
+                column = 0
+                while byte != b"":
+                    self.tableWidgetCipher.setItem(row, column, QTableWidgetItem(byte.decode('utf-8')))
+                    if column >= self.tableWidgetCipher.columnCount():
+                        row += 1
+                        column = 0
+                    else:
+                        column += 1
+                    byte = f.read(self.blockSize)
 
     def writeFile(self, filename):
-        data = []
-        with open(filename, "br+", newline='') as fileOutput:
+        with open(filename, "wb") as fileOutput:
             for rowNumber in range(self.tableWidgetCipher.rowCount()):
                 for columnNumber in range(self.tableWidgetCipher.columnCount()):
-                    data.append(self.tableWidgetCipher.item(rowNumber, columnNumber).text())
-            fileOutput.write(bytes(data))
+                    if self.tableWidgetCipher.item(rowNumber, columnNumber) is not None:
+                        fileOutput.write(self.tableWidgetCipher.item(rowNumber, columnNumber).text().encode('utf-8'))
 
-     # def writeCsv(self, filename):
-     #    """
-     #    Writes the data from the table widget to a csv file
-     #    :param filename: name of the file
-     #    :return: None
-     #    """
-     #    data = []
-     #    with open(filename, "w", newline='') as fileOutput:
-     #        writer = csv.writer(fileOutput)
-     #        for rowNumber in range(self.tableWidgetCipher.rowCount()):
-     #            for columnNumber in range(self.tableWidgetCipher.columnCount()):
-     #                data.append(self.tableWidgetCipher.item(rowNumber, columnNumber).text())
-     #            writer.writerow(data)
-     #            data = []
+    # def writeCsv(self, filename):
+    #    """
+    #    Writes the data from the table widget to a csv file
+    #    :param filename: name of the file
+    #    :return: None
+    #    """
+    #    data = []
+    #    with open(filename, "w", newline='') as fileOutput:
+    #        writer = csv.writer(fileOutput)
+    #        for rowNumber in range(self.tableWidgetCipher.rowCount()):
+    #            for columnNumber in range(self.tableWidgetCipher.columnCount()):
+    #                data.append(self.tableWidgetCipher.item(rowNumber, columnNumber).text())
+    #            writer.writerow(data)
+    #            data = []
 
     def openFile(self):
         """
@@ -447,7 +557,6 @@ class App(QMainWindow):
         """
 
         options = QFileDialog.Options()
-
         options |= QFileDialog.DontUseNativeDialog
         filename, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", "",
                                                   "All Files (*);;Text Files (*.txt)", options=options)
