@@ -552,9 +552,9 @@ class App(QMainWindow):
         if (filename is not None) and (filename != ""):
             with open(filename, 'rb') as f:
                 fileSize = os.stat(filename).st_size
-                self.tableWidgetCipher.setColumnCount((fileSize / (self.blockSize / 8) + 1) / 2)
-                self.tableWidgetCipher.setRowCount(fileSize / (self.blockSize / 8) / 2)
-                byte = f.read(self.blockSize)
+                self.tableWidgetCipher.setColumnCount(4)
+                self.tableWidgetCipher.setRowCount(fileSize / (self.blockSize / 8) / 4 + 1)
+                byte = f.read(int(self.blockSize / 8))
                 row = 0
                 column = 0
                 while byte != b"":
@@ -564,7 +564,7 @@ class App(QMainWindow):
                         column = 0
                     else:
                         column += 1
-                    byte = f.read(self.blockSize)
+                    byte = f.read(int(self.blockSize / 8))
 
     def writeFile(self, filename):
         with open(filename, "wb") as fileOutput:

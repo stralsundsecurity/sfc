@@ -15,8 +15,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/app.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="240">
-              <caret line="438" column="55" lean-forward="true" selection-start-line="438" selection-start-column="55" selection-end-line="438" selection-end-column="55" />
+            <state relative-caret-position="637">
+              <caret line="566" column="57" selection-start-line="566" selection-start-column="57" selection-end-line="566" selection-end-column="57" />
               <folding>
                 <element signature="e#0#13#0" expanded="true" />
               </folding>
@@ -72,7 +72,6 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -84,6 +83,7 @@
           <select />
         </subPane>
       </pane>
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -188,6 +188,7 @@
       <workItem from="1561292321762" duration="16811000" />
       <workItem from="1561328361170" duration="1755000" />
       <workItem from="1561367179291" duration="5199000" />
+      <workItem from="1561372826338" duration="306000" />
     </task>
     <task id="LOCAL-00001" summary="fix shortcut's for copy, extract, paste; add label for comboBoxes; add function to comboBoxes&#10;&#10;WIP: change from csv to read/write binary file">
       <created>1559576371894</created>
@@ -200,7 +201,7 @@
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="55876000" />
+    <option name="totallyTimeSpent" value="56182000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -214,7 +215,7 @@
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="2576" height="1416" extended-state="6" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.14626391" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.14745627" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -323,7 +324,7 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/sfc$test.coverage" NAME="test Coverage Results" MODIFIED="1556528621771" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/sfc$app.coverage" NAME="app Coverage Results" MODIFIED="1561372266357" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/sfc$app.coverage" NAME="app Coverage Results" MODIFIED="1561373099031" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
   <component name="editorHistoryManager">
     <entry file="file://$USER_HOME$/.PyCharm2019.1/system/python_stubs/1299163098/PyQt5/QtWidgets/QShortcut.py">
@@ -388,8 +389,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/app.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="240">
-          <caret line="438" column="55" lean-forward="true" selection-start-line="438" selection-start-column="55" selection-end-line="438" selection-end-column="55" />
+        <state relative-caret-position="637">
+          <caret line="566" column="57" selection-start-line="566" selection-start-column="57" selection-end-line="566" selection-end-column="57" />
           <folding>
             <element signature="e#0#13#0" expanded="true" />
           </folding>
