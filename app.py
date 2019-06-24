@@ -1,6 +1,5 @@
 import base64
 import binascii
-import codecs
 import sys
 import os
 
@@ -65,14 +64,7 @@ class CustomTableWidget(QTableWidget):
                 for columnNumber in range(self.columnCount()):
                     if self.item(rowNumber, columnNumber) is not None:
                         data += self.item(rowNumber, columnNumber).text()
-            if self.encoding == 'Hex':
-                binaryData = bytes.fromhex(data)
-            elif self.encoding == 'Base32':
-                binaryData = base64.b32decode(data)
-            elif self.encoding == 'Base64':
-                if "=" in data:
-                    data.replace("=", "")
-                binaryData = base64.b64decode(data)
+            binaryData = self.decode(data)
             encoded = binaryData.decode('utf8')
             clipboard.copy(encoded)
             self.clearTable()
@@ -90,14 +82,7 @@ class CustomTableWidget(QTableWidget):
                 for columnNumber in range(self.columnCount()):
                     if self.item(rowNumber, columnNumber) is not None:
                         data += self.item(rowNumber, columnNumber).text()
-            if self.encoding == 'UTF-8':
-                binaryData = bytes(data, 'UTF-8')
-            elif self.encoding == 'Base32':
-                binaryData = base64.b32decode(data)
-            elif self.encoding == 'Base64':
-                if "=" in data:
-                    data.replace("=", "")
-                binaryData = base64.b64decode(data)
+            binaryData = self.decode(data)
             encoded = binaryData.hex()
             clipboard.copy(encoded)
             self.clearTable()
@@ -115,15 +100,8 @@ class CustomTableWidget(QTableWidget):
                 for columnNumber in range(self.columnCount()):
                     if self.item(rowNumber, columnNumber) is not None:
                         data += self.item(rowNumber, columnNumber).text()
-            if self.encoding == 'UTF-8':
-                binaryData = bytes(data, 'UTF-8')
-            elif self.encoding == 'Hex':
-                binaryData = bytes.fromhex(data)
-            elif self.encoding == 'Base64':
-                if "=" in data:
-                    data.replace("=", "")
-                binaryData = base64.b64decode(data)
-            encoded = base64.b32decode(binaryData).decode('utf-8')
+            binaryData = self.decode(data)
+            encoded = base64.b32encode(binaryData).decode('utf-8')
             clipboard.copy(encoded)
             self.clearTable()
             self.insertData(blockSize)
@@ -140,13 +118,7 @@ class CustomTableWidget(QTableWidget):
                 for columnNumber in range(self.columnCount()):
                     if self.item(rowNumber, columnNumber) is not None:
                         data += self.item(rowNumber, columnNumber).text()
-            if self.encoding == 'UTF-8':
-                binaryData = bytes(data, 'UTF-8')
-            elif self.encoding == 'Hex':
-                binaryData = binascii.unhexlify(data.encode('utf-8'))
-            elif self.encoding == 'Base32':
-                binaryData = base64.b32decode(data)
-
+            binaryData = self.decode(data)
             encoded = base64.b64encode(binaryData).decode('utf-8')
             clipboard.copy(encoded)
             self.clearTable()
@@ -213,23 +185,29 @@ class CustomTableWidget(QTableWidget):
             data.append(s[:int((blockSize / 8))])
             s = s[int((blockSize / 8)):]
 
+        # topRow = self.selectedRanges().pop(0).topRow()
+        # bottomRow = self.selectedRanges().pop(0).bottomRow()
+        # leftColumn = self.selectedRanges().pop(0).leftColumn()
+        # rightColumn = self.selectedRanges().pop(0).rightColumn()
         self.setColumnCount(4)
         self.setRowCount((len(data) / 4) + 1)
-
+        # self.setRangeSelected(QTableWidgetSelectionRange(topRow, bottomRow
+        #                                                  , leftColumn, rightColumn
+        #                                                  ), True)
         # for i in range(self.selectedRanges().pop(0).topRow(),
-        #                self.selectedRanges().pop(0).bottomRow() + len(data) - 1):
+        #                self.selectedRanges().pop(0).bottomRow() + int(len(data)/4) + 1):
         #     for j in range(self.selectedRanges().pop(0).leftColumn(),
         #                    self.columnCount()):
         #         if((j - self.selectedRanges().pop(0).leftColumn()) +
         #           (i - self.selectedRanges().pop(0).topRow()) * self.columnCount()) < len(data):
-        #             index = j + i * self.columnCount()
+        #             index = (j - self.selectedRanges().pop(0).leftColumn()) + (i - self.selectedRanges().pop(0).topRow()) * self.columnCount()
         #             self.setItem(i, j, QTableWidgetItem(
         #                 data[index]))
         #     self.setRangeSelected(QTableWidgetSelectionRange(self.selectedRanges().pop(0).topRow(),
         #           self.selectedRanges().pop(0).bottomRow(), 0, self.selectedRanges().pop(0).rightColumn()), True)
 
         for i in range(self.selectedRanges().pop(0).topRow(),
-                       self.selectedRanges().pop(0).bottomRow() + len(data) - 1):
+                       self.selectedRanges().pop(0).bottomRow() + int(len(data) / 4) + 1):
             for j in range(self.selectedRanges().pop(0).leftColumn(),
                            self.columnCount()):
                 if (j + i * self.columnCount()) < len(data):
@@ -243,12 +221,77 @@ class CustomTableWidget(QTableWidget):
         self.insertData(blockSize)
 
     def clearTable(self):
+        """
+        Removes all data from the table.
+        :return:
+        """
+
         self.setRangeSelected(QTableWidgetSelectionRange(0, 0, self.rowCount() - 1, self.columnCount() - 1), True)
         for i in range(self.selectedRanges().pop(0).topRow(),
                        self.selectedRanges().pop(0).bottomRow() + 1):
             for j in range(self.selectedRanges().pop(0).leftColumn(),
                            self.selectedRanges().pop(0).rightColumn() + 1):
                 self.setItem(i, j, QTableWidgetItem(""))
+
+    def insertQuestionmarks(self, tableWidgetCipher, blockSize):
+
+        s = clipboard.paste()
+        s = "?" * len(s)
+        data = []
+        while s:
+            data.append(s[:int((blockSize / 8))])
+            s = s[int((blockSize / 8)):]
+
+        self.setColumnCount(4)
+        self.setRowCount((len(data) / 4) + 1)
+
+        for i in range(tableWidgetCipher.selectedRanges().pop(0).topRow(),
+                       tableWidgetCipher.selectedRanges().pop(0).bottomRow() + len(data) - 1):
+            for j in range(tableWidgetCipher.selectedRanges().pop(0).leftColumn(),
+                           self.columnCount()):
+                if (j + i * self.columnCount()) < len(data):
+                    index = j + i * self.columnCount()
+                    self.setItem(i, j, QTableWidgetItem(
+                        data[index]))
+
+    def getKnownPlain(self):
+        """
+        :return:
+        """
+
+        data = ""
+        for rowNumber in range(self.rowCount()):
+            for columnNumber in range(self.columnCount()):
+                if self.item(rowNumber, columnNumber) is not None and "?" not in self.item(rowNumber,
+                                                                                           columnNumber).text():
+                    data = self.item(rowNumber, columnNumber).text()
+                    break
+        binaryData = self.decode(data)
+        return binaryData, rowNumber, columnNumber
+
+    def getCipher(self, rowNumber, columnNumber):
+        """
+        :return:
+        """
+        if columnNumber == 0:
+            rowNumber = rowNumber - 1
+            columnNumber = columnNumber + 4
+        data = self.item(rowNumber, columnNumber - 1).text()
+        binaryData = self.decode(data)
+        return binaryData
+
+    def decode(self, data):
+        if self.encoding == 'UTF-8':
+            binaryData = bytes(data, 'UTF-8')
+        elif self.encoding == 'Hex':
+            binaryData = binascii.unhexlify(data.encode('utf-8'))
+        elif self.encoding == 'Base32':
+            binaryData = base64.b32decode(data)
+        elif self.encoding == 'Base64':
+            if "=" in data:
+                data.replace("=", "")
+            binaryData = base64.b64decode(data)
+        return binaryData
 
 
 class App(QMainWindow):
@@ -273,6 +316,7 @@ class App(QMainWindow):
         self.tableWidgetPlain.setRowCount(5)
 
         self.gadget = 'CBC'
+        self.x = b""
         self.cipher = 'AES'
         self.blockSize = 64
 
@@ -382,15 +426,17 @@ class App(QMainWindow):
     def insertData(self):
         if self.tableWidgetCipher.hasFocus():
             self.tableWidgetCipher.insertData(self.blockSize)
+            self.tableWidgetPlain.insertQuestionmarks(self.tableWidgetCipher, self.blockSize)
         elif self.tableWidgetPlain.hasFocus():
             self.tableWidgetPlain.insertData(self.blockSize)
 
     def onSelectGadget(self):
         self.gadget = self.comboBoxGadget.currentText()
+        self.searchGadget()
         return None
 
     def onSelectCipher(self):
-        self.cipher = int(self.comboBoxCipher.currentText())
+        self.cipher = self.comboBoxCipher.currentText()
         return None
 
     def onSelectBlockSize(self):
@@ -404,16 +450,16 @@ class App(QMainWindow):
 
         if encoding == "UTF-8":
             self.tableWidgetCipher.convertToASCII(self.blockSize)
-            self.tableWidgetCipher.convertToASCII(self.blockSize)
+            # self.tableWidgetCipher.convertToASCII(self.blockSize)
         elif encoding == "Hex":
             self.tableWidgetCipher.convertToHex(self.blockSize)
-            self.tableWidgetCipher.convertToHex(self.blockSize)
+            # self.tableWidgetCipher.convertToHex(self.blockSize)
         elif encoding == "Base32":
             self.tableWidgetCipher.convertToBase32(self.blockSize)
-            self.tableWidgetCipher.convertToBase32(self.blockSize)
+            # self.tableWidgetCipher.convertToBase32(self.blockSize)
         elif encoding == "Base64":
             self.tableWidgetCipher.convertToBase64(self.blockSize)
-            self.tableWidgetCipher.convertToBase64(self.blockSize)
+            # self.tableWidgetCipher.convertToBase64(self.blockSize)
 
         self.tableWidgetCipher.encoding = encoding
         self.tableWidgetPlain.encoding = encoding
@@ -568,6 +614,24 @@ class App(QMainWindow):
                                                   "All Files (*);;Text Files (*.txt)", options=options)
         if filename:
             return filename
+
+    def searchGadget(self):
+        """
+        //TODO
+        :return:
+        """
+        plain, rowNumber, columnNumber = self.tableWidgetPlain.getKnownPlain()
+        cipher = self.tableWidgetCipher.getCipher(rowNumber, columnNumber)
+        print(plain)
+        print(cipher)
+        print(self.encrypt(plain, cipher))
+        self.x = self.encrypt(plain, cipher)
+
+    def encrypt(self, plain, cipher):
+        int_var = int.from_bytes(plain, sys.byteorder)
+        int_key = int.from_bytes(cipher, sys.byteorder)
+        int_enc = int_var ^ int_key
+        return int_enc.to_bytes(len(plain), sys.byteorder)
 
 
 if __name__ == '__main__':
