@@ -70,8 +70,9 @@ class CustomTableWidget(QTableWidget):
             elif self.encoding == 'Base32':
                 binaryData = base64.b32decode(data)
             elif self.encoding == 'Base64':
+                if "=" in data:
+                    data.replace("=", "")
                 binaryData = base64.b64decode(data)
-
             encoded = binaryData.decode('utf8')
             clipboard.copy(encoded)
             self.clearTable()
@@ -88,13 +89,15 @@ class CustomTableWidget(QTableWidget):
             for rowNumber in range(self.rowCount()):
                 for columnNumber in range(self.columnCount()):
                     if self.item(rowNumber, columnNumber) is not None:
-                        if self.encoding == 'UTF-8':
-                            data += self.item(rowNumber, columnNumber).text()
-                        elif self.encoding == 'Base32':
-                            data += self.item(rowNumber, columnNumber).text()
-                        elif self.encoding == 'Base64':
-                            data += self.item(rowNumber, columnNumber).text()
-            binaryData = bytes(data, self.encoding)
+                        data += self.item(rowNumber, columnNumber).text()
+            if self.encoding == 'UTF-8':
+                binaryData = bytes(data, 'UTF-8')
+            elif self.encoding == 'Base32':
+                binaryData = base64.b32decode(data)
+            elif self.encoding == 'Base64':
+                if "=" in data:
+                    data.replace("=", "")
+                binaryData = base64.b64decode(data)
             encoded = binaryData.hex()
             clipboard.copy(encoded)
             self.clearTable()
@@ -111,14 +114,16 @@ class CustomTableWidget(QTableWidget):
             for rowNumber in range(self.rowCount()):
                 for columnNumber in range(self.columnCount()):
                     if self.item(rowNumber, columnNumber) is not None:
-                        if self.encoding == 'UTF-8':
-                            data += self.item(rowNumber, columnNumber).text()
-                        elif self.encoding == 'Hex':
-                            data += self.item(rowNumber, columnNumber).text()
-                        elif self.encoding == 'Base64':
-                            data += self.item(rowNumber, columnNumber).text()
-            binaryData = bytes(data, self.encoding)
-            encoded = base64.b32decode(binaryData)
+                        data += self.item(rowNumber, columnNumber).text()
+            if self.encoding == 'UTF-8':
+                binaryData = bytes(data, 'UTF-8')
+            elif self.encoding == 'Hex':
+                binaryData = bytes.fromhex(data)
+            elif self.encoding == 'Base64':
+                if "=" in data:
+                    data.replace("=", "")
+                binaryData = base64.b64decode(data)
+            encoded = base64.b32decode(binaryData).decode('utf-8')
             clipboard.copy(encoded)
             self.clearTable()
             self.insertData(blockSize)
@@ -134,14 +139,15 @@ class CustomTableWidget(QTableWidget):
             for rowNumber in range(self.rowCount()):
                 for columnNumber in range(self.columnCount()):
                     if self.item(rowNumber, columnNumber) is not None:
-                        if self.encoding == 'UTF-8':
-                            data += self.item(rowNumber, columnNumber).text()
-                        elif self.encoding == 'Hex':
-                            data += self.item(rowNumber, columnNumber).text()
-                        elif self.encoding == 'Base32':
-                            data += self.item(rowNumber, columnNumber).text()
-            binaryData = bytes(data, self.encoding)
-            encoded = base64.b64encode(binaryData).decode("utf-8")
+                        data += self.item(rowNumber, columnNumber).text()
+            if self.encoding == 'UTF-8':
+                binaryData = bytes(data, 'UTF-8')
+            elif self.encoding == 'Hex':
+                binaryData = binascii.unhexlify(data.encode('utf-8'))
+            elif self.encoding == 'Base32':
+                binaryData = base64.b32decode(data)
+
+            encoded = base64.b64encode(binaryData).decode('utf-8')
             clipboard.copy(encoded)
             self.clearTable()
             self.insertData(blockSize)
@@ -242,7 +248,7 @@ class CustomTableWidget(QTableWidget):
                        self.selectedRanges().pop(0).bottomRow() + 1):
             for j in range(self.selectedRanges().pop(0).leftColumn(),
                            self.selectedRanges().pop(0).rightColumn() + 1):
-                    self.setItem(i, j, QTableWidgetItem(""))
+                self.setItem(i, j, QTableWidgetItem(""))
 
 
 class App(QMainWindow):
