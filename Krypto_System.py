@@ -8,9 +8,9 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QApplication, QTableView
-import binascii, re
+import binascii, re, base64
 
-import sys, math
+import sys
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -268,56 +268,71 @@ class mywindow(QtWidgets.QMainWindow):
 
     def save_file(self):
         name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File')
-        file = open(name[0], 'w')
-        if self.ui.tableView.model() != None and self.ui.tableView_2.model() != None:
-            self.ui.tableView.selectAll()
-            text = 'SFC Ciphertext\n'
-            for item in self.ui.tableView.selectedIndexes():
-                if item.data() != None:
-                    text += item.data()
-            self.ui.tableView_2.selectAll()
-            text +='\nSFC Cleartext\n'
-            for item in self.ui.tableView_2.selectedIndexes():
-                if item.data() != None:
-                    text += item.data()
-            file.write(text)
-            file.close()
-        else:
-            QtWidgets.QMessageBox.about(self, "Fehler","Tabelle ist leer.")
+        if name[0].strip() != '':
+            file = open(name[0], 'w')
+            if self.ui.tableView.model() != None and self.ui.tableView_2.model() != None:
+                tag_ciphertext = 'SFC Ciphertext\n'
+                tag_cleartext ='\nSFC Cleartext\n'
+                ciphertext=''
+                cleartext=''
+                self.ui.tableView.selectAll()
+                for item in self.ui.tableView.selectedIndexes():
+                    if item.data() != None:
+                        ciphertext += item.data()
+                self.ui.tableView_2.selectAll()
+                for item in self.ui.tableView_2.selectedIndexes():
+                    if item.data() != None:
+                        cleartext += item.data()
+                if self.ui.comboBox_4.currentIndex() == 1:
+                    ciphertext = base64.b64encode(binascii.unhexlify(ciphertext)).decode('utf-8')
+                file.write(tag_ciphertext+ciphertext+tag_cleartext+cleartext)
+                file.close()
+            else:
+                QtWidgets.QMessageBox.about(self, "Fehler","Tabelle ist leer.")
 
     def read_file(self):
         name = QtWidgets.QFileDialog.getOpenFileName(self,'Open File')
         exported_File = False
-        with open(name[0],'r') as file:
-            line = file.readline()
-            cleartext = False
-            cipher_tag='SFC Ciphertext'
-            clear_tag ='SFC Cleartext'
-            if cipher_tag in line:
-                exported_File=True
-                data_cipher = ''
-                data_clear=''
-                while line:
-                    line = file.readline()
-                    line = line.strip()
-                    if clear_tag in line:
-                        cleartext = True
-                    if not cleartext:
-                        data_cipher += line
-                    else:
-                        if clear_tag not in line:
-                            data_clear += line
+        if name[0].strip() != '':
+            with open(name[0],'r') as file:
+                line = file.readline()
+                cleartext = False
+                cipher_tag='SFC Ciphertext'
+                clear_tag ='SFC Cleartext'
+                if cipher_tag in line:
+                    exported_File=True
+                    data_cipher = ''
+                    data_clear=''
+                    while line:
+                        line = file.readline()
+                        line = line.strip()
+                        if clear_tag in line:
+                            cleartext = True
+                        if not cleartext:
+                            data_cipher += line
+                        else:
+                            if clear_tag not in line:
+                                data_clear += line
+                else:
+                    file.seek(0)
+                    data = file.read()
+            if self.ui.tableView.model() != None or self.ui.tableView_2 != None:
+                self.ui.tableView.setModel(None)
+                self.ui.tableView_2.setModel(None)
+            if not exported_File:
+                data = self.base64decode(data)
+                self.insertTables(data)
             else:
-                file.seek(0)
-                data = file.read()
-        if self.ui.tableView.model() != None or self.ui.tableView_2 != None:
-            self.ui.tableView.setModel(None)
-            self.ui.tableView_2.setModel(None)
-        if not exported_File:
-            self.insertTables(data)
-        else:
-            self.table1(data_cipher)
-            self.table2(data_clear)
+                data_cipher = self.base64decode(data_cipher)
+                self.table1(data_cipher)
+                self.table2(data_clear)
+
+    def base64decode(self,data):
+        base64pattern = re.compile('([G-Z]|\+|/|=)',re.IGNORECASE)
+        match = re.search(base64pattern,data)
+        if match:
+            data = base64.b64decode(data).hex()
+        return data
 
 
 
@@ -390,6 +405,7 @@ class mywindow(QtWidgets.QMainWindow):
         self.model2.itemChanged.connect(self.check_cell_input)
 
     def insertTables(self,data):
+        data = self.base64decode(data)
         blocksize = self.getBlocksize()
         number_of_tupels = (len(data) * 4) / blocksize
         n_character = (blocksize / 4)
